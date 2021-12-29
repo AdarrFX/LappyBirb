@@ -18,7 +18,7 @@ namespace JustGame
         Vector2 TTFposition = new Vector2(200, 100);
 
         Vector2 birbPosition, grillPosition;
-        Rectangle birbRec, grillRec;
+        Rectangle birbRec, birbAnimationWindow, grillRec;
 
         float birbAlpha, grillAlpha = 1.0f;
         float birbRotation, grillRotation = 0.0f;
@@ -61,11 +61,14 @@ namespace JustGame
         protected override void LoadContent()
         {
             spriteBatch = new SpriteBatch(GraphicsDevice);
-            birbSprite = Content.Load<Texture2D>("lape");
+            birbSprite = Content.Load<Texture2D>("lape-sheet");
             grillSprite = Content.Load<Texture2D>("grill");
 
-            birbRec = new Rectangle(100, 100, birbSprite.Width*2, birbSprite.Height*2);
+            birbRec = new Rectangle(100, 100, 46, 44);
+            birbAnimationWindow = new Rectangle(23, 0, 23, 22);
+
             grillRec = new Rectangle(200, 200, grillSprite.Width/4, grillSprite.Height/4);
+            birbOrigin = new Vector2(12, 11);
 
             barrierList.Add(grillRec);
 
@@ -112,13 +115,14 @@ namespace JustGame
             birbVelocity += gravityAcceleration;
             birbRec.Y += (int)birbVelocity;
 
-            birbRotation = birbVelocity * 0.07f;           
+            //birbRotation = birbVelocity * 0.57f;           
 
 
-            if (birbRec.Y > 420)
+            if (birbRec.Y > 440)
             {
+                birbRec.Y = 440;
                 birbVelocity = 0;
-                birbRec.Y = 420;
+                birbRotation = 0;
             }
 
             // check for collisions
@@ -126,7 +130,7 @@ namespace JustGame
             {
                 if (checkBoxCollision(birbRec, rect))
                 {
-                    collisionDetected = true;
+                     collisionDetected = true;
                 }
             }
 
@@ -159,13 +163,12 @@ namespace JustGame
 
             spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp, null, null, null, null);
             //spriteBatch.Draw(birbSprite, birbRec, Color.White);
-            spriteBatch.Draw(birbSprite, birbRec, null, Color.White, birbRotation, birbOrigin, SpriteEffects.None, 0.5f);
+            spriteBatch.Draw(birbSprite, birbRec, birbAnimationWindow, Color.White, birbRotation, birbOrigin, SpriteEffects.None, 0.5f);
 
             foreach (Rectangle obstacle in barrierList)
             {
                 spriteBatch.Draw(grillSprite, obstacle, Color.White);
             }
-
 
             spriteBatch.End();
             base.Draw(gameTime);
