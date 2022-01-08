@@ -13,12 +13,14 @@ namespace JustGame
 
         Texture2D birbSprite;
         Texture2D grillSprite;
+        Texture2D groundSprite;
 
         SpriteFont TTfont;
         Vector2 TTFposition = new Vector2(200, 100);
 
         Vector2 birbPosition, grillPosition;
-        Rectangle birbRec, birbAnimationWindow, grillRec;
+        Vector2 groundPosition;
+        Rectangle birbRec, birbRecDrawingOffset, birbAnimationWindow, grillRec;
 
         float birbAlpha, grillAlpha = 1.0f;
         float birbRotation, grillRotation = 0.0f;
@@ -65,11 +67,10 @@ namespace JustGame
             grillSprite = Content.Load<Texture2D>("grill");
 
             birbRec = new Rectangle(100, 100, 46, 44);
-            birbAnimationWindow = new Rectangle(23, 0, 23, 22);
+            birbAnimationWindow = new Rectangle(22, 0, 24, 22);
 
             grillRec = new Rectangle(200, 200, grillSprite.Width/4, grillSprite.Height/4);
             birbOrigin = new Vector2(12, 11);
-
             barrierList.Add(grillRec);
 
             birbVelocity = 0;
@@ -115,7 +116,7 @@ namespace JustGame
             birbVelocity += gravityAcceleration;
             birbRec.Y += (int)birbVelocity;
 
-            //birbRotation = birbVelocity * 0.57f;           
+            birbRotation = birbVelocity * 0.17f;           
 
 
             if (birbRec.Y > 440)
@@ -124,6 +125,9 @@ namespace JustGame
                 birbVelocity = 0;
                 birbRotation = 0;
             }
+
+            birbRecDrawingOffset = birbRec;
+            birbRecDrawingOffset.Y += (int)birbOrigin.Y * 2;
 
             // check for collisions
             foreach (Rectangle rect in barrierList)
@@ -162,8 +166,10 @@ namespace JustGame
             }
 
             spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp, null, null, null, null);
-            //spriteBatch.Draw(birbSprite, birbRec, Color.White);
-            spriteBatch.Draw(birbSprite, birbRec, birbAnimationWindow, Color.White, birbRotation, birbOrigin, SpriteEffects.None, 0.5f);
+            
+            spriteBatch.Draw(ground, , Color.White);
+
+            spriteBatch.Draw(birbSprite, birbRecDrawingOffset, birbAnimationWindow, Color.White, birbRotation, birbOrigin, SpriteEffects.None, 0.5f);
 
             foreach (Rectangle obstacle in barrierList)
             {
