@@ -19,7 +19,7 @@ namespace JustGame
         Vector2 TTFposition = new Vector2(200, 100);
 
         Vector2 birbPosition, grillPosition;
-        Vector2 groundPosition;
+        Vector2 groundPosition = new Vector2(0, 400);
         Rectangle birbRec, birbRecDrawingOffset, birbAnimationWindow, grillRec;
 
         float birbAlpha, grillAlpha = 1.0f;
@@ -33,13 +33,13 @@ namespace JustGame
         float birbScale = 1.0f;
         float grillScale = 0.5f;
 
-        SpriteEffects spriteEffect = SpriteEffects.None;
-
         KeyboardState previousState;
 
         float zDepth = 0.10f;
 
         List<Rectangle> barrierList = new List<Rectangle>();
+        List<Vector2> groundTiles = new List<Vector2>();
+
         bool collisionDetected = false;
 
         public Game1()
@@ -65,6 +65,7 @@ namespace JustGame
             spriteBatch = new SpriteBatch(GraphicsDevice);
             birbSprite = Content.Load<Texture2D>("lape-sheet");
             grillSprite = Content.Load<Texture2D>("grill");
+            groundSprite = Content.Load<Texture2D>("ground");
 
             birbRec = new Rectangle(100, 100, 46, 44);
             birbAnimationWindow = new Rectangle(22, 0, 24, 22);
@@ -76,6 +77,9 @@ namespace JustGame
             birbVelocity = 0;
             gravityAcceleration = 0.25f;
 
+            groundTiles.Add(new Vector2(0, 400));
+            groundTiles.Add(new Vector2(groundSprite.Width * 3, 400));
+            groundTiles.Add(new Vector2(groundSprite.Width * 3 * 2, 400));
 
             // TODO: use this.Content to load your game content here
         }
@@ -116,7 +120,7 @@ namespace JustGame
             birbVelocity += gravityAcceleration;
             birbRec.Y += (int)birbVelocity;
 
-            birbRotation = birbVelocity * 0.17f;           
+            birbRotation = birbVelocity * 0.12f;           
 
 
             if (birbRec.Y > 440)
@@ -126,6 +130,7 @@ namespace JustGame
                 birbRotation = 0;
             }
 
+            // Offset positioning fix for Lappy birbsprite to make his collision rectangle match drawn sprite position
             birbRecDrawingOffset = birbRec;
             birbRecDrawingOffset.Y += (int)birbOrigin.Y * 2;
 
@@ -150,6 +155,9 @@ namespace JustGame
                 addObstacle(grillSprite, barrierList);
             }
 
+            //Update parallax scroll positions
+            updateParallaxScroll(groundSprite, groundTiles, 3);
+
             base.Update(gameTime);
         }
 
@@ -167,13 +175,16 @@ namespace JustGame
 
             spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp, null, null, null, null);
             
-            spriteBatch.Draw(ground, , Color.White);
-
             spriteBatch.Draw(birbSprite, birbRecDrawingOffset, birbAnimationWindow, Color.White, birbRotation, birbOrigin, SpriteEffects.None, 0.5f);
-
+            
             foreach (Rectangle obstacle in barrierList)
             {
                 spriteBatch.Draw(grillSprite, obstacle, Color.White);
+            }
+
+            foreach (Vector2 groundPos in groundTiles)
+            {
+                spriteBatch.Draw(groundSprite, groundPos, null, Color.White, 0.0f, new Vector2(), 3.0f, SpriteEffects.None, 0.1f);
             }
 
             spriteBatch.End();
@@ -208,5 +219,22 @@ namespace JustGame
 
         }
 
+        public static List<Vector2> updateParallaxScroll(Texture2D tile, List<Vector2> positionList, int speed)
+        {
+            for(int i=0; i < positionList.Count; i++)
+            {
+                Vector2 newVec = new Vector2(positionList[i].X - speed, positionList[i].Y);
+                positionList[i] = newVec;
+
+                if (positionList[i].X < -tile.Width * 3)
+                {
+                    Vector2 newReplacementVec = new Vector2(tile.Width * 3 * 2, positionList[i].Y);
+                    positionList[i] = newReplacementVec;
+                }
+
+            }
+
+            return positionList;
+        }
     }
 }
