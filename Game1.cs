@@ -41,6 +41,10 @@ namespace JustGame
         List<Vector2> groundTiles = new List<Vector2>();
 
         bool collisionDetected = false;
+        bool beginFlapAnimation = false;
+
+        float currentTime = 0f;
+        Color testColor = Color.CornflowerBlue;
 
         public Game1()
         {
@@ -67,8 +71,10 @@ namespace JustGame
             grillSprite = Content.Load<Texture2D>("grill");
             groundSprite = Content.Load<Texture2D>("ground");
 
+            TTfont = Content.Load<SpriteFont>("PressStart2P-Regular");
+
             birbRec = new Rectangle(100, 100, 46, 44);
-            birbAnimationWindow = new Rectangle(22, 0, 24, 22);
+            birbAnimationWindow = new Rectangle(0, 0, 23, 22);
 
             grillRec = new Rectangle(200, 200, grillSprite.Width/4, grillSprite.Height/4);
             birbOrigin = new Vector2(12, 11);
@@ -110,6 +116,8 @@ namespace JustGame
                 birbVelocity = -7.0f;
                 birbRotation = 0;
                 previousState = keyState;
+                currentTime = 0;
+                birbAnimationWindow.X = 0;
             } else
             {
                 previousState = keyState;
@@ -133,6 +141,8 @@ namespace JustGame
             // Offset positioning fix for Lappy birbsprite to make his collision rectangle match drawn sprite position
             birbRecDrawingOffset = birbRec;
             birbRecDrawingOffset.Y += (int)birbOrigin.Y * 2;
+            birbRecDrawingOffset.X += (int)birbOrigin.X * 2;
+
 
             // check for collisions
             foreach (Rectangle rect in barrierList)
@@ -150,13 +160,23 @@ namespace JustGame
                 barrierList[i] = newRect;
             }
 
-            if (700 - barrierList[barrierList.Count-1].X > 400)
+            if (900 - barrierList[barrierList.Count-1].X > 400)
             {
                 addObstacle(grillSprite, barrierList);
             }
 
             //Update parallax scroll positions
             updateParallaxScroll(groundSprite, groundTiles, 3);
+
+            currentTime += (float)gameTime.ElapsedGameTime.TotalMilliseconds;
+
+            if (currentTime > 150)
+            {
+                birbAnimationWindow.X = 23;
+            } if (currentTime > 250)
+            {
+                birbAnimationWindow.X = 46;
+            }
 
             base.Update(gameTime);
         }
@@ -170,13 +190,14 @@ namespace JustGame
             }
             else
             {
-                GraphicsDevice.Clear(Color.CornflowerBlue);
+                GraphicsDevice.Clear(testColor);
             }
 
             spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp, null, null, null, null);
             
             spriteBatch.Draw(birbSprite, birbRecDrawingOffset, birbAnimationWindow, Color.White, birbRotation, birbOrigin, SpriteEffects.None, 0.5f);
-            
+            spriteBatch.DrawString(TTfont, currentTime.ToString(), new Vector2(100, 100), Color.Black);
+
             foreach (Rectangle obstacle in barrierList)
             {
                 spriteBatch.Draw(grillSprite, obstacle, Color.White);
@@ -209,8 +230,8 @@ namespace JustGame
 
             int rando = r.Next(0, 200);
 
-            Rectangle upperObstacle = new Rectangle(700, -200 + rando, obstacleSprite.Width / 4, obstacleSprite.Height / 4);
-            Rectangle lowerObstacle = new Rectangle(700, 200 + rando, obstacleSprite.Width / 4, obstacleSprite.Height / 4);
+            Rectangle upperObstacle = new Rectangle(900, -200 + rando, obstacleSprite.Width / 4, obstacleSprite.Height / 4);
+            Rectangle lowerObstacle = new Rectangle(900, 200 + rando, obstacleSprite.Width / 4, obstacleSprite.Height / 4);
 
             barrierList.Add(upperObstacle);
             barrierList.Add(lowerObstacle);
@@ -226,7 +247,7 @@ namespace JustGame
                 Vector2 newVec = new Vector2(positionList[i].X - speed, positionList[i].Y);
                 positionList[i] = newVec;
 
-                if (positionList[i].X < -tile.Width * 3)
+                if (positionList[i].X <= -(tile.Width - 1) * 3)
                 {
                     Vector2 newReplacementVec = new Vector2(tile.Width * 3 * 2, positionList[i].Y);
                     positionList[i] = newReplacementVec;
@@ -235,6 +256,20 @@ namespace JustGame
             }
 
             return positionList;
+        }
+
+        public class Animation
+        {
+            public Animation(int[] timings, int[] sheetPositions)
+            {
+                int currentTime;
+            }
+
+            public void updateTimer()
+            {
+               
+            }
+
         }
     }
 }
