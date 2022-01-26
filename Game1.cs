@@ -45,6 +45,12 @@ namespace JustGame
 
         float currentTime = 0f;
         Color testColor = Color.CornflowerBlue;
+        
+        
+        Animation birbFlap;
+        
+        //Animation variables
+        int[] birbAnimTimings, birbSheetPositions;
 
         public Game1()
         {
@@ -87,14 +93,15 @@ namespace JustGame
             groundTiles.Add(new Vector2(groundSprite.Width * 3, 400));
             groundTiles.Add(new Vector2(groundSprite.Width * 3 * 2, 400));
 
-            // TODO: use this.Content to load your game content here
-        }
+            birbFlap = new Animation(birbAnimTimings, birbSheetPositions, false);
+
+        // TODO: use this.Content to load your game content here
+    }
 
         protected override void Update(GameTime gameTime)
         {
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
-
 
             //Input handling
 
@@ -116,8 +123,10 @@ namespace JustGame
                 birbVelocity = -7.0f;
                 birbRotation = 0;
                 previousState = keyState;
-                currentTime = 0;
-                birbAnimationWindow.X = 0;
+                //currentTime = 0;
+                //birbAnimationWindow.X = 0;
+
+                birbFlap.resetAnimation();
             } else
             {
                 previousState = keyState;
@@ -168,7 +177,7 @@ namespace JustGame
             //Update parallax scroll positions
             updateParallaxScroll(groundSprite, groundTiles, 3);
 
-            currentTime += (float)gameTime.ElapsedGameTime.TotalMilliseconds;
+            /*currentTime += (float)gameTime.ElapsedGameTime.TotalMilliseconds;
 
             if (currentTime > 150)
             {
@@ -176,7 +185,9 @@ namespace JustGame
             } if (currentTime > 250)
             {
                 birbAnimationWindow.X = 46;
-            }
+            } */
+
+            birbFlap.updateTimer(gameTime);
 
             base.Update(gameTime);
         }
@@ -195,7 +206,7 @@ namespace JustGame
 
             spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp, null, null, null, null);
             
-            spriteBatch.Draw(birbSprite, birbRecDrawingOffset, birbAnimationWindow, Color.White, birbRotation, birbOrigin, SpriteEffects.None, 0.5f);
+            spriteBatch.Draw(birbSprite, birbRecDrawingOffset, birbFlap.spriteSheetPosition(), Color.White, birbRotation, birbOrigin, SpriteEffects.None, 0.5f);
             spriteBatch.DrawString(TTfont, currentTime.ToString(), new Vector2(100, 100), Color.Black);
 
             foreach (Rectangle obstacle in barrierList)
@@ -260,14 +271,46 @@ namespace JustGame
 
         public class Animation
         {
-            public Animation(int[] timings, int[] sheetPositions)
+            float currentTime;
+            int[] timings;
+            int[] sheetpositions;
+            bool doesLoop;
+
+            int sheetPosition;
+
+            public Animation(int[] timings, int[] sheetPositions, bool doesLoop)
             {
-                int currentTime;
+                this.timings = timings;
+                this.sheetpositions = sheetPositions;
+                this.doesLoop = doesLoop;
             }
 
-            public void updateTimer()
+            public void updateTimer(GameTime gameTime)
             {
-               
+                currentTime += (float)gameTime.ElapsedGameTime.TotalMilliseconds;
+
+                if (currentTime > 150)
+                {
+                    sheetPosition = 23;
+                }
+                if (currentTime > 250)
+                {
+                    sheetPosition = 46;
+                }
+
+            }
+
+            public void resetAnimation()
+            {
+                currentTime = 0;
+                sheetPosition = 0;
+            }
+
+            public Rectangle spriteSheetPosition()
+            {
+                Rectangle returnRectangle = new Rectangle(0,0,23, 22);
+                returnRectangle.X = sheetPosition;
+                return returnRectangle;
             }
 
         }
