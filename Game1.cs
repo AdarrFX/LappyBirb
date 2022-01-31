@@ -11,10 +11,14 @@ namespace JustGame
         private GraphicsDeviceManager graphics;
         private SpriteBatch spriteBatch;
 
+        // Textures and sprites
+        Texture2D skyBackground;
         Texture2D birbSprite;
         Texture2D grillSprite;
         Texture2D groundSprite;
+        Texture2D mountainSprite;
 
+        // Fonts
         SpriteFont TTfont;
         Vector2 TTFposition = new Vector2(200, 100);
 
@@ -37,15 +41,17 @@ namespace JustGame
 
         float zDepth = 0.10f;
 
+        // Barrier list
         List<Rectangle> barrierList = new List<Rectangle>();
-        List<Vector2> groundTiles = new List<Vector2>();
+
+        // Parallax scroll lists
+        List<Vector2> groundTiles, mountainTiles = new List<Vector2>();
 
         bool collisionDetected = false;
         bool beginFlapAnimation = false;
 
         float currentTime = 0f;
         Color testColor = Color.CornflowerBlue;
-        
         
         Animation birbFlap;
         
@@ -73,9 +79,11 @@ namespace JustGame
         protected override void LoadContent()
         {
             spriteBatch = new SpriteBatch(GraphicsDevice);
+            skyBackground = Content.Load<Texture2D>("sky");
             birbSprite = Content.Load<Texture2D>("lape-sheet");
             grillSprite = Content.Load<Texture2D>("grill");
             groundSprite = Content.Load<Texture2D>("ground");
+            mountainSprite = Content.Load<Texture2D>("mountain");
 
             TTfont = Content.Load<SpriteFont>("PressStart2P-Regular");
 
@@ -89,9 +97,11 @@ namespace JustGame
             birbVelocity = 0;
             gravityAcceleration = 0.25f;
 
-            groundTiles.Add(new Vector2(0, 400));
-            groundTiles.Add(new Vector2(groundSprite.Width * 3, 400));
-            groundTiles.Add(new Vector2(groundSprite.Width * 3 * 2, 400));
+            groundTiles = generateParallaxTilemap(groundSprite, this.GraphicsDevice.Viewport.Width, 3, 400);
+            mountainTiles = generateParallaxTilemap(groundSprite, this.GraphicsDevice.Viewport.Width, 2, 300);
+            //groundTiles.Add(new Vector2(0, 400));
+            //groundTiles.Add(new Vector2(groundSprite.Width * 3, 400));
+            //groundTiles.Add(new Vector2(groundSprite.Width * 3 * 2, 400));
 
             birbFlap = new Animation(birbAnimTimings, birbSheetPositions, false);
 
@@ -119,7 +129,6 @@ namespace JustGame
 
             if (keyState.IsKeyDown(Keys.Space) && !previousState.IsKeyDown(Keys.Space))
             {
-                //addObstacle(grillSprite, barrierList);
                 birbVelocity = -7.0f;
                 birbRotation = 0;
                 previousState = keyState;
@@ -175,7 +184,8 @@ namespace JustGame
             }
 
             //Update parallax scroll positions
-            updateParallaxScroll(groundSprite, groundTiles, 3);
+            updateParallaxScroll(groundSprite, groundTiles, 3, 3);
+            updateParallaxScroll(mountainSprite, mountainTiles, 1, 2);
 
             /*currentTime += (float)gameTime.ElapsedGameTime.TotalMilliseconds;
 
@@ -205,14 +215,24 @@ namespace JustGame
             }
 
             spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp, null, null, null, null);
-            
-            spriteBatch.Draw(birbSprite, birbRecDrawingOffset, birbFlap.spriteSheetPosition(), Color.White, birbRotation, birbOrigin, SpriteEffects.None, 0.5f);
+
+            spriteBatch.Draw(skyBackground, new Vector2(0, 0), Color.White);
+
+            spriteBatch.Draw(skyBackground, new Vector2(), null, Color.White, 0.0f, new Vector2(), 4.0f, SpriteEffects.None, 0.1f);
+
             spriteBatch.DrawString(TTfont, currentTime.ToString(), new Vector2(100, 100), Color.Black);
 
+            foreach (Vector2 mountPos in mountainTiles)
+            {
+                spriteBatch.Draw(mountainSprite, mountPos, null, Color.White, 0.0f, new Vector2(), 2.0f, SpriteEffects.None, 0.1f);
+            }
             foreach (Rectangle obstacle in barrierList)
+
             {
                 spriteBatch.Draw(grillSprite, obstacle, Color.White);
             }
+
+            spriteBatch.Draw(birbSprite, birbRecDrawingOffset, birbFlap.spriteSheetPosition(), Color.White, birbRotation, birbOrigin, SpriteEffects.None, 0.5f);
 
             foreach (Vector2 groundPos in groundTiles)
             {
@@ -251,22 +271,36 @@ namespace JustGame
 
         }
 
-        public static List<Vector2> updateParallaxScroll(Texture2D tile, List<Vector2> positionList, int speed)
+        public static List<Vector2> updateParallaxScroll(Texture2D tile, List<Vector2> positionList, int speed, int scaleFactor)
         {
             for(int i=0; i < positionList.Count; i++)
             {
                 Vector2 newVec = new Vector2(positionList[i].X - speed, positionList[i].Y);
                 positionList[i] = newVec;
 
-                if (positionList[i].X <= -(tile.Width - 1) * 3)
+                if (positionList[i].X <= -(tile.Width - 1) * scaleFactor)
                 {
-                    Vector2 newReplacementVec = new Vector2(tile.Width * 3 * 2, positionList[i].Y);
+                    Vector2 newReplacementVec = new Vector2(tile.Width * scaleFactor * 2, positionList[i].Y);
                     positionList[i] = newReplacementVec;
                 }
 
             }
 
             return positionList;
+        }
+
+        public static List<Vector2> generateParallaxTilemap(Texture2D tile, int screenWidth, int scale, int yPosition)
+        {
+            int numberOfTiles = (int)(screenWidth / (tile.Width * scale)) + 2;
+            List<Vector2> tilemap = new List<Vector2>();
+            int tilePosition = 0;
+
+            for (int i = 0; i < numberOfTiles; i++)
+            {
+                tilemap.Add(new Vector2(tilePosition, yPosition));
+                tilePosition += tile.Width * scale;
+            }
+            return tilemap;
         }
 
         public class Animation
