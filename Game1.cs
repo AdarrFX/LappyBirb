@@ -280,7 +280,7 @@ namespace JustGame
 
                 if (positionList[i].X <= -(tile.Width - 1) * scaleFactor)
                 {
-                    Vector2 newReplacementVec = new Vector2(tile.Width * scaleFactor * 2, positionList[i].Y);
+                    Vector2 newReplacementVec = new Vector2(tile.Width * scaleFactor * (positionList.Count - 1), positionList[i].Y);
                     positionList[i] = newReplacementVec;
                 }
 
