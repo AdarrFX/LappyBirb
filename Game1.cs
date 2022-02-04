@@ -87,6 +87,10 @@ namespace JustGame
 
             TTfont = Content.Load<SpriteFont>("PressStart2P-Regular");
 
+            // Animation maps
+            birbAnimTimings = new int[3]{ 0, 150, 250 };
+            birbSheetPositions = new int[3]{ 0, 23, 46 };
+
             birbRec = new Rectangle(100, 100, 46, 44);
             birbAnimationWindow = new Rectangle(0, 0, 23, 22);
 
@@ -99,9 +103,6 @@ namespace JustGame
 
             groundTiles = generateParallaxTilemap(groundSprite, this.GraphicsDevice.Viewport.Width, 3, 400);
             mountainTiles = generateParallaxTilemap(groundSprite, this.GraphicsDevice.Viewport.Width, 2, 300);
-            //groundTiles.Add(new Vector2(0, 400));
-            //groundTiles.Add(new Vector2(groundSprite.Width * 3, 400));
-            //groundTiles.Add(new Vector2(groundSprite.Width * 3 * 2, 400));
 
             birbFlap = new Animation(birbAnimTimings, birbSheetPositions, false);
 
@@ -132,8 +133,6 @@ namespace JustGame
                 birbVelocity = -7.0f;
                 birbRotation = 0;
                 previousState = keyState;
-                //currentTime = 0;
-                //birbAnimationWindow.X = 0;
 
                 birbFlap.resetAnimation();
             } else
@@ -178,24 +177,19 @@ namespace JustGame
                 barrierList[i] = newRect;
             }
 
+            if (barrierList[0].X < -200)
+            {
+                barrierList.RemoveAt(0);
+            }
+
             if (900 - barrierList[barrierList.Count-1].X > 400)
             {
                 addObstacle(grillSprite, barrierList);
             }
 
             //Update parallax scroll positions
-            updateParallaxScroll(groundSprite, groundTiles, 3, 3);
-            updateParallaxScroll(mountainSprite, mountainTiles, 1, 2);
-
-            /*currentTime += (float)gameTime.ElapsedGameTime.TotalMilliseconds;
-
-            if (currentTime > 150)
-            {
-                birbAnimationWindow.X = 23;
-            } if (currentTime > 250)
-            {
-                birbAnimationWindow.X = 46;
-            } */
+            updateParallaxScroll(groundSprite, groundTiles, 3.0f, 3);
+            updateParallaxScroll(mountainSprite, mountainTiles, 0.9f, 2);
 
             birbFlap.updateTimer(gameTime);
 
@@ -220,7 +214,7 @@ namespace JustGame
 
             spriteBatch.Draw(skyBackground, new Vector2(), null, Color.White, 0.0f, new Vector2(), 4.0f, SpriteEffects.None, 0.1f);
 
-            spriteBatch.DrawString(TTfont, currentTime.ToString(), new Vector2(100, 100), Color.Black);
+            spriteBatch.DrawString(TTfont, currentTime.ToString(), new Vector2(-1000, 100), Color.Black);
 
             foreach (Vector2 mountPos in mountainTiles)
             {
@@ -271,19 +265,28 @@ namespace JustGame
 
         }
 
-        public static List<Vector2> updateParallaxScroll(Texture2D tile, List<Vector2> positionList, int speed, int scaleFactor)
+        public static List<Vector2> updateParallaxScroll(Texture2D tile, List<Vector2> positionList, float speed, int scaleFactor)
         {
+            float largestXPosition = 0;
+
             for(int i=0; i < positionList.Count; i++)
             {
                 Vector2 newVec = new Vector2(positionList[i].X - speed, positionList[i].Y);
                 positionList[i] = newVec;
+                
+                if (positionList[i].X > largestXPosition)
+                {
+                    largestXPosition = positionList[i].X;
+                }
+            }
 
+            for (int i = 0; i < positionList.Count; i++)
+            {
                 if (positionList[i].X <= -(tile.Width - 1) * scaleFactor)
                 {
-                    Vector2 newReplacementVec = new Vector2(tile.Width * scaleFactor * (positionList.Count - 1), positionList[i].Y);
+                    Vector2 newReplacementVec = new Vector2(tile.Width * scaleFactor + largestXPosition, positionList[i].Y);
                     positionList[i] = newReplacementVec;
                 }
-
             }
 
             return positionList;
@@ -307,7 +310,7 @@ namespace JustGame
         {
             float currentTime;
             int[] timings;
-            int[] sheetpositions;
+            int[] sheetPositions;
             bool doesLoop;
 
             int sheetPosition;
@@ -315,7 +318,7 @@ namespace JustGame
             public Animation(int[] timings, int[] sheetPositions, bool doesLoop)
             {
                 this.timings = timings;
-                this.sheetpositions = sheetPositions;
+                this.sheetPositions = sheetPositions;
                 this.doesLoop = doesLoop;
             }
 
@@ -323,15 +326,18 @@ namespace JustGame
             {
                 currentTime += (float)gameTime.ElapsedGameTime.TotalMilliseconds;
 
-                if (currentTime > 150)
+                if (currentTime > timings[timings.Length - 1] && doesLoop)
                 {
-                    sheetPosition = 23;
-                }
-                if (currentTime > 250)
-                {
-                    sheetPosition = 46;
+                    resetAnimation();
                 }
 
+                for (int i = 0; i < timings.Length; i++)
+                {
+                    if (currentTime > timings[i])
+                    {
+                        sheetPosition = sheetPositions[i];
+                    }
+                }
             }
 
             public void resetAnimation()
@@ -348,5 +354,27 @@ namespace JustGame
             }
 
         }
+
+        public class Particle
+        {
+            float life;
+            int lifetime;
+            Vector2 particlePosition = new Vector2();
+            Vector2 particleVelocity = new Vector2();
+            public Particle(int lifetime, Vector2 particlePosition, Vector2 particleVelocity)
+            {
+                this.lifetime = lifetime;
+                this.particlePosition = particlePosition;
+                this.particleVelocity = particleVelocity;
+                life = 0;
+            }
+            public float updateParticleLife(GameTime gameTime)
+            {
+                life += (float)gameTime.ElapsedGameTime.TotalMilliseconds;
+                return life;
+            }
+
+        }
+
     }
 }
