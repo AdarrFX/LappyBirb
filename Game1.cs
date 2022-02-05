@@ -17,6 +17,7 @@ namespace JustGame
         Texture2D grillSprite;
         Texture2D groundSprite;
         Texture2D mountainSprite;
+        Texture2D feather;
 
         // Fonts
         SpriteFont TTfont;
@@ -58,6 +59,9 @@ namespace JustGame
         //Animation variables
         int[] birbAnimTimings, birbSheetPositions;
 
+        // Particle system initialization
+        ParticleSystem particleHandler = new ParticleSystem();
+
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
@@ -72,7 +76,7 @@ namespace JustGame
             base.Initialize();
             graphics.PreferredBackBufferWidth = 1280;
             graphics.PreferredBackBufferHeight = 720;
-            Window.Title = "gaem";
+            Window.Title = "Lappy Bird 2";
 
         }
 
@@ -84,6 +88,7 @@ namespace JustGame
             grillSprite = Content.Load<Texture2D>("grill");
             groundSprite = Content.Load<Texture2D>("ground");
             mountainSprite = Content.Load<Texture2D>("mountain");
+            feather = Content.Load<Texture2D>("feather");
 
             TTfont = Content.Load<SpriteFont>("PressStart2P-Regular");
 
@@ -107,7 +112,7 @@ namespace JustGame
             birbFlap = new Animation(birbAnimTimings, birbSheetPositions, false);
 
         // TODO: use this.Content to load your game content here
-    }
+        }
 
         protected override void Update(GameTime gameTime)
         {
@@ -128,11 +133,17 @@ namespace JustGame
             if (keyState.IsKeyDown(Keys.Down))
                 birbRec.Y += 5;
 
+            birbPosition.X = birbRec.X;
+            birbPosition.Y = birbRec.Y;
+
             if (keyState.IsKeyDown(Keys.Space) && !previousState.IsKeyDown(Keys.Space))
             {
                 birbVelocity = -7.0f;
                 birbRotation = 0;
                 previousState = keyState;
+
+                particleHandler.generateParticle(1200, birbPosition, feather);
+                particleHandler.generateParticle(1000, birbPosition, feather);
 
                 birbFlap.resetAnimation();
             } else
@@ -145,7 +156,7 @@ namespace JustGame
             birbVelocity += gravityAcceleration;
             birbRec.Y += (int)birbVelocity;
 
-            birbRotation = birbVelocity * 0.12f;           
+            birbRotation = birbVelocity * 0.12f;
 
 
             if (birbRec.Y > 440)
@@ -193,6 +204,8 @@ namespace JustGame
 
             birbFlap.updateTimer(gameTime);
 
+            particleHandler.updateParticleLife(gameTime);
+
             base.Update(gameTime);
         }
 
@@ -232,6 +245,8 @@ namespace JustGame
             {
                 spriteBatch.Draw(groundSprite, groundPos, null, Color.White, 0.0f, new Vector2(), 3.0f, SpriteEffects.None, 0.1f);
             }
+
+            particleHandler.drawParticles(spriteBatch);
 
             spriteBatch.End();
             base.Draw(gameTime);
@@ -357,23 +372,79 @@ namespace JustGame
 
         public class Particle
         {
-            float life;
-            int lifetime;
-            Vector2 particlePosition = new Vector2();
-            Vector2 particleVelocity = new Vector2();
-            public Particle(int lifetime, Vector2 particlePosition, Vector2 particleVelocity)
+            public int Lifetime { get; set; }
+            public float Life { get; set; }
+            public Vector2 ParticlePosition { get; set; }
+            public Vector2 ParticleVelocity { get; set; }
+            public Texture2D ParticleTexture { get; }
+            public float Rotation { get; set; }
+            public Particle(int lifetime, Vector2 particlePosition, Vector2 particleVelocity, float particleRotation, Texture2D particleTexture)
             {
-                this.lifetime = lifetime;
-                this.particlePosition = particlePosition;
-                this.particleVelocity = particleVelocity;
-                life = 0;
+                this.Lifetime = lifetime;
+                this.ParticlePosition = particlePosition;
+                this.ParticleVelocity = particleVelocity;
+                this.ParticleTexture = particleTexture;
+                this.Rotation = particleRotation;
+                Life = 0;
             }
-            public float updateParticleLife(GameTime gameTime)
+            public void updateParticleLife(GameTime gameTime)
             {
-                life += (float)gameTime.ElapsedGameTime.TotalMilliseconds;
-                return life;
+                Life += (float)gameTime.ElapsedGameTime.TotalMilliseconds;
+                this.ParticlePosition = new Vector2(ParticlePosition.X + ParticleVelocity.X, ParticlePosition.Y + ParticleVelocity.Y);
             }
+        }
 
+        public class ParticleSystem
+        {
+            List<Particle> particleList = new List<Particle>();
+            Random random;
+            public ParticleSystem()
+            {
+                random = new Random();
+            }
+            public void updateParticleLife(GameTime gameTime)
+            {
+                if (particleList.Count > 0)
+                {
+                    for (int i = 0; i < particleList.Count; i++)
+                    {
+                        particleList[i].updateParticleLife(gameTime);
+                        particleList[i].Rotation += 0.05f;
+                        //particleList[i].ParticleVelocity = new Vector2(particleList[i].ParticleVelocity.X, particleList[i].ParticleVelocity.Y + 0.2f);
+
+                        // If the particle's lived longer than it's lifetime - delete it!
+                        if (particleList[i].Life > particleList[i].Lifetime)
+                        {
+                            particleList.RemoveAt(i);
+                        }
+                    }
+                }
+            }
+            public void generateParticle(int _lifetime, Vector2 _particlePosition, Texture2D _particleTexture)
+            {
+                Vector2 particleVelocity;
+                Vector2 particlePosition = _particlePosition;
+                particleVelocity.X = (float)random.NextDouble() * random.Next(-1, 1) - 2;
+                particleVelocity.Y = (float)random.NextDouble();
+                float particleRotation = (float)random.NextDouble() * random.Next(-2, 2);
+
+                particlePosition.X = particlePosition.X + random.Next(1, 3) + 10;
+                particlePosition.Y = particlePosition.Y + random.Next(1, 3) + 10;
+
+                Particle newParticle = new Particle(_lifetime, particlePosition, particleVelocity, particleRotation, _particleTexture);
+                particleList.Add(newParticle);
+            }
+            public void drawParticles(SpriteBatch spriteBatch)
+            {
+                if (particleList.Count > 0)
+                {
+                    for (int i=0; i < particleList.Count; i++)
+                    {
+                        //spriteBatch.Draw(particleList[i].ParticleTexture, particleList[i].ParticlePosition, Color.White);
+                        spriteBatch.Draw(particleList[i].ParticleTexture, particleList[i].ParticlePosition, new Rectangle(0, 0, particleList[i].ParticleTexture.Width, particleList[i].ParticleTexture.Height), Color.White, particleList[i].Rotation, new Vector2((int)particleList[i].ParticleTexture.Width/2, (int)particleList[i].ParticleTexture.Height/2), 1.2f, SpriteEffects.None, 1);
+                    }
+                }
+            }
         }
 
     }
