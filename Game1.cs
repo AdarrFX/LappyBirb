@@ -18,6 +18,7 @@ namespace JustGame
         Texture2D groundSprite;
         Texture2D mountainSprite;
         Texture2D feather;
+        Texture2D explosionSprite;
 
         // Fonts
         SpriteFont TTfont;
@@ -55,9 +56,11 @@ namespace JustGame
         Color testColor = Color.CornflowerBlue;
         
         Animation birbFlap;
+        Animation explosionAnim;
         
         //Animation variables
         int[] birbAnimTimings, birbSheetPositions;
+        int[] explosionAnimTimings, explosionAnimSheetPositions;
 
         // Particle system initialization
         ParticleSystem particleHandler = new ParticleSystem();
@@ -89,12 +92,17 @@ namespace JustGame
             groundSprite = Content.Load<Texture2D>("ground");
             mountainSprite = Content.Load<Texture2D>("mountain");
             feather = Content.Load<Texture2D>("feather");
+            explosionSprite = Content.Load<Texture2D>("explosion");
 
             TTfont = Content.Load<SpriteFont>("PressStart2P-Regular");
 
             // Animation maps
             birbAnimTimings = new int[3]{ 0, 150, 250 };
             birbSheetPositions = new int[3]{ 0, 23, 46 };
+
+            explosionAnimTimings = new int[11] { 0, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100 };
+            explosionAnimSheetPositions = new int[11] { 0, 45, 135, 180, 225, 270, 315, 360, 405, 450, 495 };
+
 
             birbRec = new Rectangle(100, 100, 46, 44);
             birbAnimationWindow = new Rectangle(0, 0, 23, 22);
@@ -110,6 +118,7 @@ namespace JustGame
             mountainTiles = generateParallaxTilemap(groundSprite, this.GraphicsDevice.Viewport.Width, 2, 300);
 
             birbFlap = new Animation(birbAnimTimings, birbSheetPositions, false);
+            explosionAnim = new Animation(explosionAnimTimings, explosionAnimSheetPositions, false);
 
         // TODO: use this.Content to load your game content here
         }
@@ -142,8 +151,8 @@ namespace JustGame
                 birbRotation = 0;
                 previousState = keyState;
 
-                particleHandler.generateParticle(1200, birbPosition, feather);
-                particleHandler.generateParticle(1000, birbPosition, feather);
+                particleHandler.generateParticle(1200, birbPosition, feather, 1);
+                particleHandler.generateParticle(1000, birbPosition, feather, 1);
 
                 birbFlap.resetAnimation();
             } else
@@ -203,6 +212,7 @@ namespace JustGame
             updateParallaxScroll(mountainSprite, mountainTiles, 0.9f, 2);
 
             birbFlap.updateTimer(gameTime);
+            explosionAnim.updateTimer(gameTime);
 
             particleHandler.updateParticleLife(gameTime);
 
@@ -215,6 +225,7 @@ namespace JustGame
             if (collisionDetected)
             {
                 GraphicsDevice.Clear(Color.Red);
+                particleHandler.generateParticle(1000, birbPosition, explosionSprite, 2);
             }
             else
             {
@@ -252,8 +263,6 @@ namespace JustGame
             base.Draw(gameTime);
 
             // TODO: Add your drawing code here
-
-            base.Draw(gameTime);
         }
 
         public static bool checkBoxCollision(Rectangle boxA, Rectangle boxB)
@@ -420,19 +429,36 @@ namespace JustGame
                     }
                 }
             }
-            public void generateParticle(int _lifetime, Vector2 _particlePosition, Texture2D _particleTexture)
+            public void generateParticle(int _lifetime, Vector2 _particlePosition, Texture2D _particleTexture, int _particleType, Animation _particleAnim)
             {
+                
                 Vector2 particleVelocity;
                 Vector2 particlePosition = _particlePosition;
-                particleVelocity.X = (float)random.NextDouble() * random.Next(-1, 1) - 2;
-                particleVelocity.Y = (float)random.NextDouble();
-                float particleRotation = (float)random.NextDouble() * random.Next(-2, 2);
+                Animation particleAnim = _particleAnim;
+                
+                // feather
+                if (_particleType == 1)
+                {
+                    particleVelocity.X = (float)random.NextDouble() * random.Next(-1, 1) - 2;
+                    particleVelocity.Y = (float)random.NextDouble();
+                    float particleRotation = (float)random.NextDouble() * random.Next(-2, 2);
 
-                particlePosition.X = particlePosition.X + random.Next(1, 3) + 10;
-                particlePosition.Y = particlePosition.Y + random.Next(1, 3) + 10;
+                    particlePosition.X = particlePosition.X + random.Next(1, 3) + 10;
+                    particlePosition.Y = particlePosition.Y + random.Next(1, 3) + 10;
 
-                Particle newParticle = new Particle(_lifetime, particlePosition, particleVelocity, particleRotation, _particleTexture);
-                particleList.Add(newParticle);
+                    Particle newParticle = new Particle(_lifetime, particlePosition, particleVelocity, particleRotation, _particleTexture);
+                    particleList.Add(newParticle);
+                } 
+                // Explosion
+                else
+                {
+                    particleVelocity.X = 0;
+                    particleVelocity.Y = 0;
+
+                    Particle newParticle = new Particle(_lifetime, particlePosition, particleVelocity, 0, _particleTexture);
+                    particleList.Add(newParticle);
+                }
+
             }
             public void drawParticles(SpriteBatch spriteBatch)
             {
@@ -440,8 +466,7 @@ namespace JustGame
                 {
                     for (int i=0; i < particleList.Count; i++)
                     {
-                        //spriteBatch.Draw(particleList[i].ParticleTexture, particleList[i].ParticlePosition, Color.White);
-                        spriteBatch.Draw(particleList[i].ParticleTexture, particleList[i].ParticlePosition, new Rectangle(0, 0, particleList[i].ParticleTexture.Width, particleList[i].ParticleTexture.Height), Color.White, particleList[i].Rotation, new Vector2((int)particleList[i].ParticleTexture.Width/2, (int)particleList[i].ParticleTexture.Height/2), 1.2f, SpriteEffects.None, 1);
+                        spriteBatch.Draw(particleList[i].ParticleTexture, particleList[i].ParticlePosition, new Rectangle(0, 0, particleList[i].ParticleTexture.Width, particleList[i].ParticleTexture.Height), Color.White, particleList[i].Rotation, new Vector2((int)particleList[i].ParticleTexture.Width/2, (int)particleList[i].ParticleTexture.Height/2), 1.2f, SpriteEffects.None, 0.1f);
                     }
                 }
             }
